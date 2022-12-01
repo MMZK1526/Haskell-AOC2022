@@ -1,0 +1,43 @@
+cabal-version:      2.4
+name:               Haskell-AOC2022
+version:            0.1.0.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             mmzk1526
+maintainer:         yc4120@ic.ac.uk
+
+-- A copyright notice.
+-- copyright:
+-- category:
+extra-source-files: CHANGELOG.md
+
+executable Day1
+    main-is:          Day1.hs
+
+    -- Modules included in this executable, other than Main.
+    other-modules:
+        Gadgets.IO,
+        Gadgets.Maybe,
+        Gadgets.Monad,
+        Gadgets.Set,
+        Utilities
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:
+        base ^>=4.14.3.0,
+        text ^>=1.2.4.1,
+        transformers ^>=0.5.6.2,
+        containers ^>= 0.6.5.1
+    hs-source-dirs:   src
+    default-language: Haskell2010
