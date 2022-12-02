@@ -1,10 +1,9 @@
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- Question source: https://adventofcode.com/2022/day/1
 
-import qualified Numeric as N
-import           Utilities
 import           Data.List
+import           Utilities
 
 day1Part1 :: [[Integer]] -> Integer
 day1Part1 = maximum . map sum
