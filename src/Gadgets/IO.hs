@@ -6,7 +6,6 @@ import           System.IO as IO
   (Handle, hFlush, hGetLine, hIsEOF, stdin, stdout)
 import           System.IO.Error
   (IOErrorType, ioeGetFileName, isDoesNotExistError, isEOFError, mkIOError)
-
 import           Gadgets.Monad (void_)
 
 -- | Reads all lines from @stdin@, returning a @[String]@.

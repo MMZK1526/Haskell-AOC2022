@@ -15,16 +15,8 @@ data RowStrategy = X | Y | Z
   deriving Enum
 
 parseStrat :: Text -> (ColStrategy, RowStrategy)
-parseStrat str = (colS, rowS)
-  where
-    colS = case str `T.index` 0 of
-      'A' -> A
-      'B' -> B
-      'C' -> C
-    rowS = case str `T.index` 2 of
-      'X' -> X
-      'Y' -> Y
-      'Z' -> Z
+parseStrat str = ( toEnum $ ord (str `T.index` 0) - ord 'A'
+                 , toEnum $ ord (str `T.index` 2) - ord 'X' )
 
 day2Part1 :: [(ColStrategy, RowStrategy)] -> Int
 day2Part1 = sum . map work
@@ -43,10 +35,7 @@ day2Part2 = sum . map work
     work (colS, target) = choice + result
       where
         choice = 1 + (fromEnum colS + fromEnum target - 1) `mod` 3
-        result = case target of
-          X -> 0
-          Y -> 3
-          Z -> 6
+        result = 3 * fromEnum target
 
 main :: IO ()
 main = do
