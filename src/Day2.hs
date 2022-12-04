@@ -19,7 +19,7 @@ parseStrat str = ( toEnum $ ord (str `T.index` 0) - ord 'A'
                  , toEnum $ ord (str `T.index` 2) - ord 'X' )
 
 day2Part1 :: [(ColStrategy, RowStrategy)] -> Int
-day2Part1 = sum . map work
+day2Part1 = sumWorker work
   where
     work (colS, rowS) = choice + result
       where
@@ -30,7 +30,7 @@ day2Part1 = sum . map work
           0  -> 3
 
 day2Part2 :: [(ColStrategy, RowStrategy)] -> Int
-day2Part2 = sum . map work
+day2Part2 = sumWorker work
   where
     work (colS, target) = choice + result
       where
