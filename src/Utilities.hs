@@ -23,6 +23,10 @@ readInput path =
 readInt :: Integral a => Text -> a
 readInt = fst . fromRight undefined . T.signed T.decimal . T.stripStart
 
+readIntMaybe :: Integral a => Text -> Maybe a
+readIntMaybe = fmap fst . either (const Nothing) Just . T.signed T.decimal
+             . T.stripStart
+
 readInts :: Integral a => Text -> [a]
 readInts = map readInt . T.lines
 
