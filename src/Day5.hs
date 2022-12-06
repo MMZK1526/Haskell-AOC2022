@@ -16,8 +16,7 @@ import           Gadgets.Array.Mutable
 import qualified Gadgets.Array.ST as A
 import           Utilities
 
-type CrateConfig     = Array Int (Seq Char)
-type CrateConfigST s = STArray s Int (Seq Char)
+type CrateConfig = Array Int (Seq Char)
 
 parseCrate :: Text -> (CrateConfig, [(Int, Int, Int)])
 parseCrate str = (crates, (\[a, b, c] -> (a, b, c)) <$> instrList)
@@ -34,10 +33,6 @@ parseCrate str = (crates, (\[a, b, c] -> (a, b, c)) <$> instrList)
       forM_ cratePositions $ \row -> forM_ (zip [1..] row) $ \(ix, cargo) ->
         when (cargo /= ' ') (void $ adjust' cratesST (L.|> cargo) ix)
       A.unsafeFreeze cratesST
-
-parseSegment :: Text -> ((Int, Int), (Int, Int))
-parseSegment = let worker = bimap readInt readInt . breakOn "-"
-               in  bimap worker worker . breakOn ","
 
 simulateCrate :: Bool -> (CrateConfig, [(Int, Int, Int)]) -> String
 simulateCrate keepOrder (craits, instrs) = runST $ do
