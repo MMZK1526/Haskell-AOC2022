@@ -3,6 +3,10 @@ module Gadgets.Monad where
 import           Control.Applicative (liftA2)
 import           Control.Monad.Trans.Writer
   (WriterT, Writer, censor, runWriter, runWriterT)
+import           Data.Functor.Identity
+
+instance MonadFail Identity where
+  fail = error
 
 -- | Clear the log of a @WriterT@.
 -- 
