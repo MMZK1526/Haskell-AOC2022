@@ -167,7 +167,6 @@ executable Day9
 executable Day10
     main-is:          Day10.hs
     other-modules:
-        Day1
         Gadgets.Array,
         Gadgets.Array.Mutable,
         Gadgets.Array.ST,

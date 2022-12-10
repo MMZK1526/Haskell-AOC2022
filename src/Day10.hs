@@ -28,7 +28,7 @@ simulation = execWriter . foldM_ logOne 1
 
 day10Part1 :: [Maybe Int] -> Int
 day10Part1 instrs
-  = sumWorker (\c -> c * result `L.index` (c - 1)) [20, 60, 100, 140, 180, 220]
+  = sumWorker (\c -> c * result `L.index` (c - 1)) [20, 60..220]
   where
     result = simulation instrs
 
