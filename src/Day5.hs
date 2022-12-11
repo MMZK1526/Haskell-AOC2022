@@ -22,7 +22,7 @@ parseCrate :: Text -> (CrateConfig, [(Int, Int, Int)])
 parseCrate str = (crates, (\[a, b, c] -> (a, b, c)) <$> instrList)
   where
     (crateStr, instrStr) = breakOn "\n\n" str
-    instrList            = map (mapMaybe readIntMaybe . T.splitOn " ")
+    instrList            = map (mapMaybe readIntMaybe . T.words)
                                (T.lines instrStr)
     cratePositions       = getCargoNames <$> init (T.lines crateStr)
     getCargoNames        = ( map snd . filter ((== 1) . (`mod` 4) . fst)

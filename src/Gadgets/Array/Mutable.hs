@@ -7,10 +7,6 @@ import           Data.Array.ST (MArray)
 import qualified Data.Array.Unsafe as A
 import qualified Gadgets.Array as A
 
--- | Making an array from a list, indexed from 0.
-fromList :: MArray a e m => [e] -> m (a Int e)
-fromList = A.thaw . A.fromList
-
 -- | Adjusts a value in the array with the given function.
 -- It will do nothing if the index is out of bound.
 adjust :: (Ix i, MArray a e m) => a i e -> (e -> e) -> i -> m (Maybe e)
