@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 -- Question source: https://adventofcode.com/2022/day/12
 
 import           Control.Monad
@@ -40,10 +38,10 @@ floodfill legalSteps startWithE endCondition hillMap
           else go (i + 1, frs')
 
 day12Part1 :: Array (Int, Int) Char -> Int
-day12Part1 = floodfill (\cur nxt -> succ cur >= nxt) False (== 'E')
+day12Part1 = floodfill ((>=) . succ) False (== 'E')
 
 day12Part2 :: Array (Int, Int) Char -> Int
-day12Part2 = floodfill (\cur nxt -> cur <= succ nxt) True (`elem` "Sa")
+day12Part2 = floodfill ((. succ) . (<=)) True (`elem` "Sa")
 
 main :: IO ()
 main = do
