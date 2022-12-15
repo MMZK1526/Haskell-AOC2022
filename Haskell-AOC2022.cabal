@@ -257,3 +257,19 @@ executable Day14
         containers ^>=0.6.5.1
     hs-source-dirs:   src
     default-language: Haskell2010
+
+executable Day15
+    main-is:          Day15.hs
+    other-modules:
+        Gadgets.IO,
+        Gadgets.Monad,
+        Utilities
+    other-extensions:
+        OverloadedStrings
+    build-depends:
+        base ^>=4.14.3.0,
+        text ^>=1.2.4.1,
+        transformers ^>=0.5.6.2,
+        containers ^>=0.6.5.1
+    hs-source-dirs:   src
+    default-language: Haskell2010
