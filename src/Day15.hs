@@ -34,12 +34,12 @@ getInter l1@((x11, y11), (x12, y12)) l2@((x21, y21), (x22, y22)) = do
 day15Part1 :: [((Int, Int), (Int, Int))] -> Int
 day15Part1 sensors = sumWorker (uncurry (-) . swap) $ merge noSensorPoses []
   where
-    noSensorPoses     = sort $ mapMaybe (uncurry worker) sensors
-    merge [] acc      = acc
+    noSensorPoses            = sort $ mapMaybe (uncurry worker) sensors
+    merge [] acc             = acc
     merge (i@(ix, iy) : is) (h@(hx, hy) : hs)
       | ix <= hy  = merge is ((hx, max iy hy) : hs)
       | otherwise = merge is (i : h : hs)
-    merge (i : is) [] = merge is [i]
+    merge (i : is) []        = merge is [i]
     worker (sx, sy) (bx, by) = (sx - dx, sx + dx) <$ guard (dx >= 0)
       where
         dx = uncurry (+) (getDist (sx, sy) (bx, by)) - abs (sy - 2000000)
