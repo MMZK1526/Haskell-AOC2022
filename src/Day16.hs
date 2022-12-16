@@ -2,7 +2,6 @@
 
 -- Question source: https://adventofcode.com/2022/day/16
 
-import           Control.Monad
 import           Data.Array
 import           Data.Bifunctor
 import           Data.Bits
@@ -18,25 +17,17 @@ import           Utilities
 mkCaves :: [Text] -> Map Int (Int, [(Int, Int)])
 mkCaves strs = M.fromList $ toIndex <$> M.keys compactMap
   where
-    toIndex k  = ( indices M.! k
-                 , second (map (first (indices M.!))) $ compactMap M.! k )
-    indices    = M.fromList 
-               $ zip (fst <$> sortOn (fst . snd) (M.toList compactMap)) [0..]
-    compactMap = M.fromList
-               $ ap (zipWith (\k v -> (k, (fst $ tempMap M.! k, v))))
-                    (concatMap compress) (M.keys tempMap)
+    toIndex k  = (indices M.! k, second (map (first (indices M.!))) $ compactMap M.! k)
+    indices    = M.fromList $ zip (fst <$> sortOn (fst . snd) (M.toList compactMap)) [0..]
+    compactMap = M.fromList $ concatMap compress (M.keys tempMap)
     compress k
-      | fst (tempMap M.! k) > 0 || k == "AA"
-        = [go (S.singleton k) . zip (snd (tempMap M.! k)) $ repeat 1]
-      | otherwise = []
+      | fst (tempMap M.! k) > 0 || k == "AA" = [(k, (fst (tempMap M.! k), go (S.singleton k) . zip (snd (tempMap M.! k)) $ repeat 1))]
+      | otherwise                            = []
     go _ []    = []
     go vis ((fr, dist) : frs)
       | fr `elem` vis             = go vis frs
-      | fst (tempMap M.! fr) /= 0 = (fr, dist) : next
-      | otherwise                 = next
-      where
-        next = go (S.insert fr vis)
-                  (frs ++ [(fr', dist + 1) | fr' <- snd (tempMap M.! fr)])
+      | fst (tempMap M.! fr) /= 0 = (fr, dist) : go (S.insert fr vis) (frs ++ [(fr', dist + 1) | fr' <- snd (tempMap M.! fr)])
+      | otherwise                 = go (S.insert fr vis) (frs ++ [(fr', dist + 1) | fr' <- snd (tempMap M.! fr)])
     tempMap    = M.fromList $ worker <$> strs
     worker str = (name, (value, caves))
       where
