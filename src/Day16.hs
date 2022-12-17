@@ -2,6 +2,8 @@
 
 -- Question source: https://adventofcode.com/2022/day/16
 
+import           Control.Monad
+import           Control.Monad.Trans.State
 import           Data.Array
 import           Data.Bifunctor
 import           Data.Bits
@@ -37,32 +39,27 @@ mkCaves strs = M.fromList $ toIndex <$> M.keys compactMap
           "tunnel" -> breakOn "valve " $ snd others
           _        -> breakOn "valves " $ snd others
 
-mkCache :: Map Int (Int, [(Int, Int)]) -> (Array (Int, Int, Int) Int, Int)
-mkCache caves = (memoise, maxConfig)
+mkCache :: Int -> Map Int (Int, [(Int, Int)]) -> Map Int Int
+mkCache time caves = execState (buildCache time 0 0 0) M.empty
   where
-    memoise   = tabulate ((1, 0, 0), (30, length caves - 1, maxConfig)) worker
-    maxConfig = shiftL (1 :: Int) (length caves - 1) - 1
-    get entry@(rem, ix, c)
-      | rem <= 1  = 0
-      | otherwise = memoise ! entry
-    worker (rem, ix, c)
-      | rem <= 1 || c == maxConfig = 0
-      | ix >= 1 = m2 + (rem - 1) * fst (caves M.! ix)
-      | otherwise                                   = m1
-      where
-        m1 = maximum $ 0 : [get (rem - t, x, c) | (x, t) <- snd (caves M.! ix), not (testBit c (x - 1))]
-        m2 = maximum $ 0 : [get (rem - 1 - t, x, c') | (x, t) <- snd (caves M.! ix), not (testBit c' (x - 1))]
-        c' = setBit c (ix - 1)
+    buildCache rem pos c acc = when (rem > 1) $ do
+      let acc' = acc + fst (caves M.! pos) * rem
+      when (pos > 0) $ modify' (M.insertWith max c acc')
+      forM_ (snd (caves M.! pos)) $ \(pos', cost) -> unless (testBit c pos') $
+        buildCache (rem - 1 - cost) pos' (setBit c pos) acc'
 
-day16Part1 :: Array (Int, Int, Int) Int -> Int
-day16Part1 = (! (30, 0, 0))
+day16Part1 :: Map Int (Int, [(Int, Int)]) -> Int
+day16Part1 caves = maximum (mkCache 30 caves)
 
-day16Part2 :: (Array (Int, Int, Int) Int, Int) -> Int
-day16Part2 (cache, maxConfig) = maximum [cache ! (26, 0, i) + cache ! (26, 0, maxConfig - i) | i <- [0..(maxConfig `div` 2)]]
+day16Part2 :: Map Int (Int, [(Int, Int)]) -> Int
+day16Part2 caves
+  = maximum [cache M.! i + cache M.! j | i <- keys, j <- keys, i .&. j == 1]
+  where
+    cache = mkCache 26 caves
+    keys  = M.keys cache
 
 main :: IO ()
 main = do
   caves <- mkCaves . T.lines <$> readInput "day16"
-  let cache = mkCache caves
-  print $ day16Part1 (fst cache)
-  print $ day16Part2 cache
+  print $ day16Part1 caves
+  print $ day16Part2 caves
