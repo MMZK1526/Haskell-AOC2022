@@ -38,6 +38,6 @@ day2Part2 = sumWorker work
 
 main :: IO ()
 main = do
-  input <- fmap parseStrat . T.lines <$> readInput "day2"
+  input <- map parseStrat . T.lines <$> readInput "day2"
   print $ day2Part1 input
   print $ day2Part2 input

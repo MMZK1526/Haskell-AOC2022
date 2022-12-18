@@ -52,6 +52,6 @@ day13Part2 signals = (1 + S.findIndex (List [Val 2]) sigSet)
 
 main :: IO ()
 main = do
-  input <- fmap (mkSignals . T.unpack) . readGroups <$> readInput "day13"
+  input <- map (mkSignals . T.unpack) . readGroups <$> readInput "day13"
   print $ day13Part1 input
   print $ day13Part2 input

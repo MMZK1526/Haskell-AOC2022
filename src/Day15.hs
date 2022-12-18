@@ -60,6 +60,6 @@ day15Part2 sensors = uncurry ((+) . (* ub)) . head . filter verify
 
 main :: IO ()
 main = do
-  input <- fmap mkBeacon . T.lines <$> readInput "day15"
+  input <- map mkBeacon . T.lines <$> readInput "day15"
   print $ day15Part1 input
   print $ day15Part2 input

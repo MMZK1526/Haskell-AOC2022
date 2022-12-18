@@ -21,6 +21,6 @@ day4Part2 = sumWorker $ \((a, b), (c, d)) -> fromEnum (not $ b < c || d < a)
 
 main :: IO ()
 main = do
-  input <- fmap parseSegment . T.lines <$> readInput "day4"
+  input <- map parseSegment . T.lines <$> readInput "day4"
   print $ day4Part1 input
   print $ day4Part2 input
