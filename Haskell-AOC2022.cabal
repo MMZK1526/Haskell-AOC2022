@@ -342,9 +342,7 @@ executable Day19
         Gadgets.Monad,
         Utilities
     other-extensions:
-        FlexibleContexts,
-        OverloadedStrings,
-        TupleSections
+        RecordWildCards
     build-depends:
         array ^>=0.5.4.0,
         base ^>=4.14.3.0,
