@@ -4,102 +4,82 @@
 
 import           Control.Monad
 import           Control.Monad.Trans.State
-import           Data.Map (Map)
-import qualified Data.Map as M
+import           Data.Array
 import           Data.Maybe
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Gadgets.Array as A
 import           Utilities
 
-data StuffType = Ore | Clay | Obs | Geode deriving (Show, Eq, Ord)
+data StuffType = Ore | Clay | Obs | Geode deriving (Enum, Eq)
 
-type Stuff    = Map StuffType Int
-type Machines = Map StuffType Int
+type Stuff    = Array Int Int
+type Machines = Array Int Int
+
+(!!!) :: Array Int a -> StuffType -> a
+(!!!) = (. fromEnum) . (!)
+
+adjust :: (a -> a) -> StuffType -> Array Int a -> Array Int a
+adjust = (. fromEnum) . flip . flip A.adjust'
 
 data Blueprint = BP { oreBP :: Int,        clayBP  :: Int
-                    , obsBP :: (Int, Int), geodeBP :: (Int, Int) } deriving (Show, Eq, Ord)
+                    , obsBP :: (Int, Int), geodeBP :: (Int, Int) }
 
 data WorkState = WS { stuff     :: Stuff
                     , machines  :: Machines
                     , blueprint :: Blueprint
                     , blacklist :: [StuffType]
-                    , curMax    :: Int
-                    , cache     :: Map Int [(Machines, Stuff)] } deriving (Show, Eq, Ord)
+                    , curMax    :: Int }
 
 mkBlueprint :: Text -> Blueprint
 mkBlueprint str = BP (ints !! 1) (ints !! 2) (ints !! 3, ints !! 4) (ints !! 5, ints !! 6)
   where
     ints = catMaybes $ readIntMaybe <$> T.words str
 
-getNexts :: Blueprint -> [StuffType] -> (Machines, Stuff) -> [([StuffType], (Machines, Stuff))]
-getNexts BP {..} bList (m, s) = zip (repeat []) (snd <$> moves) ++ [(map fst moves, (m, s))]
+getNexts :: Int -> Blueprint -> [StuffType] -> (Machines, Stuff) -> [([StuffType], (Machines, Stuff))]
+getNexts 1 _ _ (m, s)              = [([], (m, s))]
+getNexts time BP {..} bList (m, s) = zip (repeat []) (snd <$> moves) ++ [(map fst moves, (m, s))]
   where
-    moves = filter (\(t, (m, s)) -> t `notElem` bList && all (>= 0) s && m M.! Ore <= 4)
-      [ (Geode, (M.adjust (+ 1) Geode m, M.adjust (+ (-snd geodeBP)) Obs $ M.adjust (+ (-fst geodeBP)) Ore s))
-      , (Obs, (M.adjust (+ 1) Obs m, M.adjust (+ (-snd obsBP)) Clay $ M.adjust (+ (-fst obsBP)) Ore s))
-      , (Clay, (M.adjust (+ 1) Clay m, M.adjust (+ (-clayBP)) Ore s))
-      , (Ore, (M.adjust (+ 1) Ore m, M.adjust (+ (-oreBP)) Ore s)) ]
-
-inferior :: (Machines, Stuff) -> (Machines, Stuff) -> Bool
-inferior (m1, s1) (m2, s2) 
-  = and (zipWith (<=) (snd <$> M.toAscList m1) (snd <$> M.toAscList m2))
- && and (zipWith (<=) (snd <$> M.toAscList s1) (snd <$> M.toAscList s2))
+    moves = filter (\(t, _) -> t `notElem` bList) $ geodeChoice ++ obsChoice ++ clayChoice ++ oreChoice
+    oreChoice = do
+      guard $ s !!! Ore + (time - 4) * (m !!! Ore - maximum [oreBP, clayBP, fst obsBP, fst geodeBP]) < 0
+      guard $ s !!! Ore >= oreBP
+      return (Ore, (adjust (+ 1) Ore m, adjust (+ (-oreBP)) Ore s))
+    clayChoice = do
+      guard $ s !!! Clay + (time - 3) * (m !!! Clay - snd obsBP) < 0
+      guard $ s !!! Ore >= clayBP
+      return (Clay, (adjust (+ 1) Clay m, adjust (+ (-clayBP)) Ore s))
+    obsChoice = do
+      guard $ s !!! Obs + (time - 2) * (m !!! Obs - snd geodeBP) < 0
+      guard $ s !!! Clay >= snd obsBP && s !!! Ore >= fst obsBP
+      return (Obs, (adjust (+ 1) Obs m, adjust (+ (-snd obsBP)) Clay $ adjust (+ (-fst obsBP)) Ore s))
+    geodeChoice = do
+      guard $ s !!! Obs >= snd geodeBP && s !!! Ore >= fst geodeBP
+      return (Geode, (adjust (+ 1) Geode m, adjust (+ (-snd geodeBP)) Obs $ adjust (+ (-fst geodeBP)) Ore s))
 
 produce :: Machines -> Stuff -> Stuff
 produce mac =
-  flip (foldr (\o -> M.adjust (+ mac M.! o) o)) [Ore, Clay, Obs, Geode]
+  flip (foldr (\o -> adjust (+ mac !!! o) o)) [Ore, Clay, Obs, Geode]
 
 nextSteps :: Int -> State WorkState [([StuffType], (Machines, Stuff))]
 nextSteps time = do
   ws <- get
-  let bp         = blueprint ws
   let cur@(m, s) = (machines ws, stuff ws)
-  let curCache   = cache ws M.! time
+  let time'      = if snd (geodeBP $ blueprint ws) > s !!! Obs then time - 1 else time
   curBest <- gets curMax
-  if 2 * (s M.! Geode + time * m M.! Geode) + time * time < 2 * curBest + time || any (inferior cur) curCache
+  if 2 * (s !!! Geode + time * m !!! Geode) + time' * time' < 2 * curBest + time'
     then pure []
     else do
-      modify (\ws -> ws { cache = M.insert time (cur : curCache) (cache ws) })
-      let nexts = getNexts bp (blacklist ws) cur
+      let nexts = getNexts time (blueprint ws) (blacklist ws) cur
       return $ if length nexts == 5 then init nexts else nexts
-
-decentTryout :: Int -> Blueprint -> Int
-decentTryout time bp@BP {..} = curMax $ execState (worker time) initWS
-  where
-    initWS = WS (M.fromList [(Ore, 0), (Clay, 0), (Obs, 0), (Geode, 0)])
-                   (M.fromList [(Ore, 1), (Clay, 0), (Obs, 0), (Geode, 0)])
-                   bp [] (-1) (M.fromList . zip [1..time] $ repeat [])
-    worker n
-      | n == 0 = do
-        result <- (M.! Geode) <$> gets stuff
-        modify' (\ws -> ws { curMax = max (curMax ws) result })
-      | otherwise     = do
-        ws   <- get
-        let cur@(m, s) = (machines ws, stuff ws)
-        let moves = filter (\(t, (m, s)) -> all (>= 0) s && m M.! Ore <= 4)
-              [ (Geode, (M.adjust (+ 1) Geode m, M.adjust (+ (-snd geodeBP)) Obs $ M.adjust (+ (-fst geodeBP)) Ore s))
-              , (Obs, (M.adjust (+ 1) Obs m, M.adjust (+ (-snd obsBP)) Clay $ M.adjust (+ (-fst obsBP)) Ore s))
-              , (Clay, (M.adjust (+ 1) Clay m, M.adjust (+ (-clayBP)) Ore s))
-              , (Ore, (M.adjust (+ 1) Ore m, M.adjust (+ (-oreBP)) Ore s)) ]
-        let (m', s') = case lookup Geode moves of
-              Just n  -> n
-              Nothing -> case lookup Obs moves of
-                Just n  -> n
-                Nothing -> fromMaybe (m, s) $ if snd obsBP * m M.! Ore <= fst obsBP * m M.! Clay
-                  then if m M.! Ore == 4 then Nothing else lookup Ore moves
-                  else lookup Clay moves
-        modify (\ws -> ws { machines = m', stuff = produce m s' })
-        worker (n - 1)
 
 simulation :: Int -> Blueprint -> Int
 simulation time bp = curMax $ execState (worker time) initWS
   where
-    initWS = WS (M.fromList [(Ore, 0), (Clay, 0), (Obs, 0), (Geode, 0)])
-                   (M.fromList [(Ore, 1), (Clay, 0), (Obs, 0), (Geode, 0)])
-                   bp [] (decentTryout time bp) (M.fromList . zip [1..time] $ repeat [])
+    initWS = WS (A.fromList [0, 0, 0, 0]) (A.fromList [1, 0, 0, 0]) bp [] 0
     worker n
       | n == 0 = do
-        result <- (M.! Geode) <$> gets stuff
+        result <- (!!! Geode) <$> gets stuff
         modify' (\ws -> ws { curMax = max (curMax ws) result })
       | otherwise     = do
         ws   <- get
