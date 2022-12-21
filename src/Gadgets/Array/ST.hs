@@ -11,8 +11,8 @@ import qualified Gadgets.Array as A
 type STArray = A.STArray
 
 -- | Making an array from a list, indexed from 0.
-fromList :: [e] -> ST s (STArray s Int e)
-fromList = thaw . A.fromList
+fromListST :: [e] -> ST s (STArray s Int e)
+fromListST = thaw . A.fromList
 
 -- | Making an array from a bound and a default value.
 newArray :: Ix i => (i, i) -> a -> ST s (STArray s i a)

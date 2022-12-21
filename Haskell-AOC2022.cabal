@@ -351,3 +351,21 @@ executable Day19
         containers ^>=0.6.5.1,
     hs-source-dirs:   src
     default-language: Haskell2010
+
+executable Day20
+    main-is:          Day20.hs
+    other-modules:
+        Gadgets.Array,
+        Gadgets.IO,
+        Gadgets.Monad,
+        Utilities
+    other-extensions:
+        RecordWildCards
+    build-depends:
+        array ^>=0.5.4.0,
+        base ^>=4.14.3.0,
+        text ^>=1.2.4.1,
+        transformers ^>=0.5.6.2,
+        containers ^>=0.6.5.1,
+    hs-source-dirs:   src
+    default-language: Haskell2010
