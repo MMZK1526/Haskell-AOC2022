@@ -17,8 +17,8 @@ data StuffType = Ore | Clay | Obs | Geode deriving (Enum, Eq)
 type Stuff    = Array Int Int
 type Machines = Array Int Int
 
-(!+) :: Array Int a -> StuffType -> a
-(!+) = (. fromEnum) . (!)
+(!!!) :: Array Int a -> StuffType -> a
+(!!!) = (. fromEnum) . (!)
 
 adjust :: (a -> a) -> StuffType -> Array Int a -> Array Int a
 adjust = (. fromEnum) . flip . flip A.adjust'
@@ -43,10 +43,10 @@ nextSteps time = do
   ws@WS { blueprint = bp@BP {..}, machines = m, stuff = s } <- get
   let worker n i
         | n >= snd geodeBP = 0
-        | otherwise        = 1 + worker (n + m !+ Obs + i) (i + 1)
-  let time' = time - worker (s !+ Obs) 0
+        | otherwise        = 1 + worker (n + m !!! Obs + i) (i + 1)
+  let time' = time - worker (s !!! Obs) 0
   curBest                                                   <- gets curMax
-  return $ if 2 * (s !+ Geode + time * m !+ Geode)
+  return $ if 2 * (s !!! Geode + time * m !!! Geode)
             + time' * time' <= 2 * curBest + time'
     then []
     else getNexts bp (blacklist ws) (m, s)
@@ -58,26 +58,26 @@ nextSteps time = do
       where
         (bList', moves) = unzip $ makeOre ++ makeClay ++ makeGeode ++ makeObs
         makeOre         = do
-          guard $ s !+ Ore + (time - 1) * (m !+ Ore - oreReq) < 0
-               && s !+ Ore >= oreBP && Ore `notElem` bList
+          guard $ s !!! Ore + (time - 1) * (m !!! Ore - oreReq) < 0
+               && s !!! Ore >= oreBP && Ore `notElem` bList
           return (Ore, (adjust (+ 1) Ore m, adjust (+ (-oreBP)) Ore s))
         makeClay        = do
-          guard $ s !+ Clay + (time - 3) * (m !+ Clay - snd obsBP) < 0
-               && s !+ Ore >= clayBP && Clay `notElem` bList
+          guard $ s !!! Clay + (time - 3) * (m !!! Clay - snd obsBP) < 0
+               && s !!! Ore >= clayBP && Clay `notElem` bList
           return (Clay, (adjust (+ 1) Clay m, adjust (+ (-clayBP)) Ore s))
         makeObs         = do
-          guard $ s !+ Obs + (time - 2) * (m !+ Obs - snd geodeBP) < 0
-               && s !+ Clay >= snd obsBP && s !+ Ore >= fst obsBP
+          guard $ s !!! Obs + (time - 2) * (m !!! Obs - snd geodeBP) < 0
+               && s !!! Clay >= snd obsBP && s !!! Ore >= fst obsBP
                && Obs `notElem` bList
           return (Obs, ( adjust (+ 1) Obs m
-                       , s /// [ (Ore, s !+ Ore - fst obsBP)
-                               , (Clay, s !+ Clay - snd obsBP) ] ))
+                       , s /// [ (Ore, s !!! Ore - fst obsBP)
+                               , (Clay, s !!! Clay - snd obsBP) ] ))
         makeGeode       = do
-          guard $ s !+ Obs >= snd geodeBP && s !+ Ore >= fst geodeBP
+          guard $ s !!! Obs >= snd geodeBP && s !!! Ore >= fst geodeBP
                && Geode `notElem` bList
           return (Geode, ( adjust (+ 1) Geode m
-                         , s /// [ (Ore, s !+ Ore - fst geodeBP)
-                                 , (Obs, s !+ Obs - snd geodeBP) ] ))
+                         , s /// [ (Ore, s !!! Ore - fst geodeBP)
+                                 , (Obs, s !!! Obs - snd geodeBP) ] ))
 
 simulation :: Int -> Blueprint -> Int
 simulation time bp = curMax $ execState (worker time) initWS
@@ -85,14 +85,14 @@ simulation time bp = curMax $ execState (worker time) initWS
     initWS = WS (A.fromList [0, 0, 0, 0]) (A.fromList [1, 0, 0, 0]) bp [] 0
     worker n
       | n == 0    = do
-        result <- (!+ Geode) <$> gets stuff
+        result <- (!!! Geode) <$> gets stuff
         modify' (\ws -> ws { curMax = max (curMax ws) result })
       | otherwise = do
         ws@WS { machines = m } <- get
         next                   <- nextSteps n
         forM_ next $ \(bList, (m', s')) -> do
           modify (\ws -> ws { blacklist = bList, machines = m'
-                            , stuff     = foldr (\o -> adjust (+ m !+ o) o) 
+                            , stuff     = foldr (\o -> adjust (+ m !!! o) o) 
                                                 s' [Ore, Clay, Obs, Geode] })
           worker (n - 1)
 

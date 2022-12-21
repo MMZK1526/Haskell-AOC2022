@@ -356,11 +356,12 @@ executable Day20
     main-is:          Day20.hs
     other-modules:
         Gadgets.Array,
+        Gadgets.Counter,
         Gadgets.IO,
         Gadgets.Monad,
+        Gadgets.Array.Mutable,
+        Gadgets.Array.ST,
         Utilities
-    other-extensions:
-        RecordWildCards
     build-depends:
         array ^>=0.5.4.0,
         base ^>=4.14.3.0,

@@ -1,25 +1,50 @@
 -- Question source: https://adventofcode.com/2022/day/20
 
+import           Control.Monad
+import           Control.Monad.ST
+import           Control.Monad.Trans.State
+import           Data.Array.ST
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as L
+import           Data.Set (Set)
+import qualified Data.Set as S
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Gadgets.Array.Mutable as A
+import qualified Gadgets.Array.ST as A
 import           Utilities
 
 (!) :: Seq a -> Int -> a
 xs ! ix = xs `L.index` (ix `mod` length xs)
 
 simulation :: Int -> Seq Int -> Seq Int
-simulation i xs
-  = snd <$> iterate (worker 0) (L.zip (L.fromList [0..(length xs - 1)]) xs) !! i
+simulation i xs = fst $ iterate simulateOne (xs, ixSeq) !! i
   where
-    worker l ixs
-      | l == length xs = ixs
-      | otherwise      = worker (l + 1) (move (snd $ ixs `L.index` ix))
+    len                   = length xs
+    ixSeq                 = L.fromList [0..len - 1]
+    simulateOne (xs, xis) = (xs', xis')
       where
-        Just ix = L.findIndexL ((== l) . fst) ixs
-        move x  = L.insertAt ((ix + x) `mod` (length xs - 1)) (l, x)
-                $ L.deleteAt ix ixs
+        ixs         = L.fromList $ runST $ do
+          ixsST <- A.newArray (0, len - 1) $ -1
+          forM_ (L.zip ixSeq xis) (\(ix, pos) -> ixsST A.=: pos $ ix)
+          getElems ixsST
+        xis'        = (xis `L.index`) . (xis `L.index`) . fst . snd <$> result
+        xs'         = fst <$> result
+        (_, result) = execState (forM_ ixs worker) 
+                                ((S.empty, S.empty), L.zip xs (L.zip ixs ixSeq))
+    worker posRaw         = do
+      ((outSet, inSet), xifs) <- get
+      let oftBack        = length . fst $ S.split posRaw outSet
+      let oftFore        = length . fst $ S.split (posRaw, 0) inSet
+      let pos            = posRaw - oftBack + oftFore
+      let (val, (ix, _)) = xifs `L.index` pos
+      let pos'           = (pos + val) `mod` (length xs - 1)
+      let (xifs', flag)
+            = ( L.insertAt pos' (val, (ix, flag)) $ L.deleteAt pos xifs
+              , snd . snd $ xifs' `L.index` (pos' + 1) )
+      let outSet'        = S.insert posRaw outSet
+      let inSet'         = S.insert (flag - 1, posRaw) inSet
+      put ((outSet', inSet'), xifs')
 
 day20Part1 :: Seq Int -> Int
 day20Part1 xs = sumWorker (result !) [ixOf0 + 1000, ixOf0 + 2000, ixOf0 + 3000]
@@ -36,8 +61,7 @@ day20Part1 xs = sumWorker (result !) [ixOf0 + 1000, ixOf0 + 2000, ixOf0 + 3000]
                $ L.deleteAt l xfs
 
 day20Part2 :: Seq Int -> Int
-day20Part2 xs
-  = sumWorker (result !) [ixOf0 + 1000, ixOf0 + 2000, ixOf0 + 3000]
+day20Part2 xs = sumWorker (result !) [ixOf0 + 1000, ixOf0 + 2000, ixOf0 + 3000]
   where
     result     = simulation 10 ((* 811589153) <$> xs)
     Just ixOf0 = L.findIndexL (== 0) result
