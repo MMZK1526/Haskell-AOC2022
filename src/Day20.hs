@@ -10,7 +10,6 @@ import           Data.Set (Set)
 import qualified Data.Set as S
 import           Data.Text (Text)
 import qualified Data.Text as T
-import qualified Gadgets.Array.Mutable as A
 import qualified Gadgets.Array.ST as A
 import           Utilities
 
@@ -20,18 +19,17 @@ xs ! ix = xs `L.index` (ix `mod` length xs)
 simulation :: Int -> Seq Int -> Seq Int
 simulation i xs = fst $ iterate simulateOne (xs, ixSeq) !! i
   where
-    len                   = length xs
-    ixSeq                 = L.fromList [0..len - 1]
+    ixSeq                 = L.fromList [0..length xs - 1]
     simulateOne (xs, xis) = (xs', xis')
       where
         ixs         = L.fromList $ runST $ do
-          ixsST <- A.newArray (0, len - 1) $ -1
-          forM_ (L.zip ixSeq xis) (\(ix, pos) -> ixsST A.=: pos $ ix)
+          ixsST <- A.newArray_ (0, length xs - 1)
+          forM_ (L.zip ixSeq xis) $ \(ix, pos) -> writeArray ixsST pos ix
           getElems ixsST
         xis'        = (xis `L.index`) . (xis `L.index`) . fst . snd <$> result
         xs'         = fst <$> result
         (_, result) = execState (forM_ ixs worker) 
-                                ((S.empty, S.empty), L.zip xs (L.zip ixs ixSeq))
+                                ((S.empty, S.empty), L.zip xs $ L.zip ixs ixSeq)
     worker posRaw         = do
       ((outSet, inSet), xifs) <- get
       let oftBack        = length . fst $ S.split posRaw outSet
@@ -42,15 +40,13 @@ simulation i xs = fst $ iterate simulateOne (xs, ixSeq) !! i
       let (xifs', flag)
             = ( L.insertAt pos' (val, (ix, flag)) $ L.deleteAt pos xifs
               , snd . snd $ xifs' `L.index` (pos' + 1) )
-      let outSet'        = S.insert posRaw outSet
-      let inSet'         = S.insert (flag - 1, posRaw) inSet
-      put ((outSet', inSet'), xifs')
+      put ((S.insert posRaw outSet, S.insert (flag - 1, posRaw) inSet), xifs')
 
 day20Part1 :: Seq Int -> Int
 day20Part1 xs = sumWorker (result !) [ixOf0 + 1000, ixOf0 + 2000, ixOf0 + 3000]
   where
     Just ixOf0 = L.findIndexL (== 0) result
-    result     = worker 0 $ L.zip xs (L.fromList $ replicate (length xs) False)
+    result     = worker 0 . L.zip xs . L.fromList $ replicate (length xs) False
     worker l xfs
       | l == length xs = fst <$> xfs
       | otherwise      = case xfs `L.index` l of
